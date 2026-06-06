@@ -1,11 +1,39 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Conversation, ConversationSummary, Article, ArticleSummary } from "@/types";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+let _supabase: SupabaseClient | null = null;
 
-// Public client (for client components)
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export function getSupabase(): SupabaseClient | null {
+  if (_supabase) return _supabase;
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes("your-project-id")) {
+    return null;
+  }
+
+  try {
+    _supabase = createClient(supabaseUrl, supabaseAnonKey);
+    return _supabase;
+  } catch {
+    return null;
+  }
+}
+
+// Also export as supabase for backward compatibility (client components)
+export const supabase = (() => {
+  const client = getSupabase();
+  if (!client) {
+    // Return a proxy that returns null/empty for all calls
+    return new Proxy({} as SupabaseClient, {
+      get() {
+        return undefined;
+      },
+    });
+  }
+  return client;
+})();
 
 // Server-side helper functions
 
@@ -14,7 +42,10 @@ export async function getConversations(
   limit = 20,
   tag?: string
 ): Promise<{ conversations: ConversationSummary[]; total: number }> {
-  let query = supabase
+  const client = getSupabase();
+  if (!client) return { conversations: [], total: 0 };
+
+  let query = client
     .from("conversations")
     .select("id, title, model, tags, message_count, created_at", { count: "exact" })
     .order("created_at", { ascending: false })
@@ -33,7 +64,10 @@ export async function getConversations(
 }
 
 export async function getConversation(id: string): Promise<Conversation | null> {
-  const { data, error } = await supabase
+  const client = getSupabase();
+  if (!client) return null;
+
+  const { data, error } = await client
     .from("conversations")
     .select("*")
     .eq("id", id)
@@ -44,7 +78,10 @@ export async function getConversation(id: string): Promise<Conversation | null> 
 }
 
 export async function searchConversations(query: string): Promise<ConversationSummary[]> {
-  const { data, error } = await supabase
+  const client = getSupabase();
+  if (!client) return [];
+
+  const { data, error } = await client
     .from("conversations")
     .select("id, title, model, tags, message_count, created_at")
     .or(`title.ilike.%${query}%`)
@@ -61,7 +98,10 @@ export async function getArticles(
   platform?: string,
   tag?: string
 ): Promise<{ articles: ArticleSummary[]; total: number }> {
-  let query = supabase
+  const client = getSupabase();
+  if (!client) return { articles: [], total: 0 };
+
+  let query = client
     .from("articles")
     .select("id, title, platform, tags, cover_image, created_at", { count: "exact" })
     .order("created_at", { ascending: false })
@@ -83,7 +123,10 @@ export async function getArticles(
 }
 
 export async function getArticle(id: string): Promise<Article | null> {
-  const { data, error } = await supabase
+  const client = getSupabase();
+  if (!client) return null;
+
+  const { data, error } = await client
     .from("articles")
     .select("*")
     .eq("id", id)
@@ -97,7 +140,10 @@ export async function searchArticles(
   query: string,
   platform?: string
 ): Promise<ArticleSummary[]> {
-  let dbQuery = supabase
+  const client = getSupabase();
+  if (!client) return [];
+
+  let dbQuery = client
     .from("articles")
     .select("id, title, platform, tags, cover_image, created_at")
     .or(`title.ilike.%${query}%,content.ilike.%${query}%`)
@@ -117,9 +163,12 @@ export async function getAllTags(): Promise<{
   chatgpt: string[];
   articles: string[];
 }> {
+  const client = getSupabase();
+  if (!client) return { chatgpt: [], articles: [] };
+
   const [chatgptRes, articlesRes] = await Promise.all([
-    supabase.from("conversations").select("tags"),
-    supabase.from("articles").select("tags"),
+    client.from("conversations").select("tags"),
+    client.from("articles").select("tags"),
   ]);
 
   const chatgptTags = new Set<string>();

@@ -1,13 +1,18 @@
 import { cookies } from "next/headers";
 import { createClient } from "@supabase/supabase-js";
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+function getEnv() {
+  return {
+    adminPassword: process.env.ADMIN_PASSWORD || "admin123",
+    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+    supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
+  };
+}
 
 export function getServiceClient() {
-  if (!supabaseServiceKey) {
-    throw new Error("SUPABASE_SERVICE_ROLE_KEY is not set");
+  const { supabaseUrl, supabaseServiceKey } = getEnv();
+  if (!supabaseServiceKey || !supabaseUrl) {
+    throw new Error("Supabase service role key or URL is not set");
   }
   return createClient(supabaseUrl, supabaseServiceKey);
 }
@@ -15,11 +20,13 @@ export function getServiceClient() {
 export async function isAuthenticated(): Promise<boolean> {
   const cookieStore = await cookies();
   const token = cookieStore.get("admin_token")?.value;
-  return token === ADMIN_PASSWORD;
+  const { adminPassword } = getEnv();
+  return token === adminPassword;
 }
 
 export async function login(password: string): Promise<boolean> {
-  return password === ADMIN_PASSWORD;
+  const { adminPassword } = getEnv();
+  return password === adminPassword;
 }
 
 export function getAuthTokenCookie(password: string): string {

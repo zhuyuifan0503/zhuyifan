@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { searchConversations, searchArticles } from "@/lib/supabase";
+import { searchConversations, searchArticles } from "@/lib/storage";
 
 export const metadata = {
   title: "搜索 — 内容仓库",
@@ -12,32 +12,24 @@ export default async function SearchPage({
 }) {
   const params = await searchParams;
   const query = params.q || "";
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const configured = supabaseUrl && !supabaseUrl.includes("your-project-id");
+  const hasQuery = query.trim().length > 0;
 
   let chatResults: Awaited<ReturnType<typeof searchConversations>> = [];
   let articleResults: Awaited<ReturnType<typeof searchArticles>> = [];
 
-  if (configured && query.trim()) {
-    try {
-      [chatResults, articleResults] = await Promise.all([
-        searchConversations(query.trim()),
-        searchArticles(query.trim()),
-      ]);
-    } catch {
-      // error
-    }
+  if (hasQuery) {
+    [chatResults, articleResults] = await Promise.all([
+      searchConversations(query.trim()),
+      searchArticles(query.trim()),
+    ]);
   }
 
-  const hasQuery = query.trim().length > 0;
   const totalResults = chatResults.length + articleResults.length;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
       <h1 className="text-3xl font-bold text-gray-900 mb-8">🔍 搜索</h1>
 
-      {/* Search form */}
       <form action="/search" method="get" className="mb-10">
         <div className="flex gap-3">
           <input
@@ -57,12 +49,7 @@ export default async function SearchPage({
         </div>
       </form>
 
-      {/* Results */}
-      {!configured ? (
-        <div className="text-center py-16 bg-white rounded-xl border border-dashed border-gray-300">
-          <p className="text-gray-400 text-lg">请先配置 Supabase</p>
-        </div>
-      ) : !hasQuery ? (
+      {!hasQuery ? (
         <div className="text-center py-16 bg-white rounded-xl border border-dashed border-gray-300">
           <p className="text-gray-400 text-lg">输入关键词搜索全部内容</p>
           <p className="text-gray-400 text-sm mt-1">
@@ -76,9 +63,7 @@ export default async function SearchPage({
         </div>
       ) : (
         <div>
-          <p className="text-sm text-gray-500 mb-6">
-            找到 {totalResults} 条结果
-          </p>
+          <p className="text-sm text-gray-500 mb-6">找到 {totalResults} 条结果</p>
 
           {chatResults.length > 0 && (
             <section className="mb-8">
@@ -98,9 +83,7 @@ export default async function SearchPage({
                     <div className="flex items-center gap-3 mt-1.5 text-sm text-gray-500">
                       <span>💬 {c.message_count} 条消息</span>
                       {c.model && <span>{c.model}</span>}
-                      <span>
-                        {new Date(c.created_at).toLocaleDateString("zh-CN")}
-                      </span>
+                      <span>{new Date(c.created_at).toLocaleDateString("zh-CN")}</span>
                     </div>
                   </Link>
                 ))}
@@ -130,9 +113,7 @@ export default async function SearchPage({
                       <h3 className="font-medium text-gray-900">{a.title}</h3>
                       <div className="flex items-center gap-3 mt-1.5 text-sm text-gray-500">
                         <span>{platformLabel}</span>
-                        <span>
-                          {new Date(a.created_at).toLocaleDateString("zh-CN")}
-                        </span>
+                        <span>{new Date(a.created_at).toLocaleDateString("zh-CN")}</span>
                       </div>
                     </Link>
                   );

@@ -1,22 +1,12 @@
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 import Link from "next/link";
 
-export default async function AdminLayout({
+export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // Skip auth check on login page
-  const cookieStore = await cookies();
-  const adminToken = cookieStore.get("admin_token")?.value;
-  const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
-
-  const isLoginPage = true; // handled by middleware approach instead
-
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Admin nav */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-4 flex items-center justify-between h-14">
           <div className="flex items-center gap-4">

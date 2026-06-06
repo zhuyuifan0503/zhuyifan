@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getConversation, getAllTags } from "@/lib/supabase";
+import { getConversation } from "@/lib/storage";
 import ChatMessageBubble from "@/components/ChatMessage";
 import type { Metadata } from "next";
 
@@ -10,36 +10,16 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  if (!supabaseUrl || supabaseUrl.includes("your-project-id")) {
-    return { title: "对话详情 — 内容仓库" };
-  }
-
-  try {
-    const conversation = await getConversation(id);
-    if (!conversation) return { title: "对话未找到" };
-    return {
-      title: `${conversation.title || "未命名对话"} — ChatGPT 对话`,
-      description: `${conversation.message_count} 条消息 · ${conversation.model || "ChatGPT"}`,
-    };
-  } catch {
-    return { title: "对话详情 — 内容仓库" };
-  }
+  const conversation = await getConversation(id);
+  if (!conversation) return { title: "对话未找到" };
+  return {
+    title: `${conversation.title || "未命名对话"} — ChatGPT 对话`,
+    description: `${conversation.message_count} 条消息 · ${conversation.model || "ChatGPT"}`,
+  };
 }
 
 export default async function ConversationDetailPage({ params }: Props) {
   const { id } = await params;
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const configured = supabaseUrl && !supabaseUrl.includes("your-project-id");
-
-  if (!configured) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 py-20 text-center">
-        <p className="text-gray-400 text-lg">请先配置 Supabase</p>
-      </div>
-    );
-  }
-
   const conversation = await getConversation(id);
   if (!conversation) notFound();
 
@@ -53,17 +33,12 @@ export default async function ConversationDetailPage({ params }: Props) {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      {/* Breadcrumb */}
       <div className="mb-6">
-        <Link
-          href="/chatgpt"
-          className="text-sm text-blue-600 hover:underline"
-        >
+        <Link href="/chatgpt" className="text-sm text-blue-600 hover:underline">
           ← 返回对话列表
         </Link>
       </div>
 
-      {/* Header */}
       <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
         <h1 className="text-2xl font-bold text-gray-900">
           {conversation.title || "未命名对话"}
@@ -95,7 +70,6 @@ export default async function ConversationDetailPage({ params }: Props) {
         )}
       </div>
 
-      {/* Messages */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden divide-y divide-gray-100">
         {conversation.messages.length === 0 ? (
           <div className="p-12 text-center text-gray-400">暂无消息</div>
@@ -108,12 +82,8 @@ export default async function ConversationDetailPage({ params }: Props) {
         )}
       </div>
 
-      {/* Bottom nav */}
       <div className="mt-8 text-center">
-        <Link
-          href="/chatgpt"
-          className="text-sm text-blue-600 hover:underline"
-        >
+        <Link href="/chatgpt" className="text-sm text-blue-600 hover:underline">
           ← 返回对话列表
         </Link>
       </div>

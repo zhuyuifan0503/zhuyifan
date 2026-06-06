@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArticleCard } from "@/components/ContentCard";
-import { getArticles, getAllTags } from "@/lib/supabase";
+import { getArticles, getAllTags } from "@/lib/storage";
 import Pagination from "@/components/Pagination";
 
 export const metadata = {
@@ -18,22 +18,10 @@ export default async function ArticlesListPage({
   const tag = params.tag;
   const limit = 20;
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const configured = supabaseUrl && !supabaseUrl.includes("your-project-id");
-
-  let articles: Awaited<ReturnType<typeof getArticles>> = { articles: [], total: 0 };
-  let allTags: string[] = [];
-
-  if (configured) {
-    try {
-      [articles, { articles: allTags }] = await Promise.all([
-        getArticles(page, limit, platform, tag),
-        getAllTags(),
-      ]);
-    } catch {
-      // error
-    }
-  }
+  const [articles, { articles: allTags }] = await Promise.all([
+    getArticles(page, limit, platform, tag),
+    getAllTags(),
+  ]);
 
   const totalPages = Math.ceil(articles.total / limit);
 
@@ -119,8 +107,13 @@ export default async function ArticlesListPage({
         </>
       ) : (
         <div className="text-center py-20 bg-white rounded-xl border border-dashed border-gray-300">
-          <p className="text-gray-400 text-lg">
-            {configured ? "暂无文案" : "请先配置 Supabase"}
+          <p className="text-gray-400 text-lg">暂无文案</p>
+          <p className="text-gray-400 text-sm mt-1">
+            前往{" "}
+            <Link href="/admin/import" className="text-blue-500 underline">
+              管理后台
+            </Link>{" "}
+            添加
           </p>
         </div>
       )}

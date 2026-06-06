@@ -1,32 +1,15 @@
 import Link from "next/link";
 import { ConversationCard, ArticleCard } from "@/components/ContentCard";
-import type { ConversationSummary, ArticleSummary } from "@/types";
-
-async function getRecentContent() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  if (!supabaseUrl || supabaseUrl.includes("your-project-id")) {
-    return { conversations: [], articles: [], configured: false };
-  }
-
-  try {
-    const { getConversations, getArticles } = await import("@/lib/supabase");
-    const [chatResult, articleResult] = await Promise.all([
-      getConversations(1, 6),
-      getArticles(1, 6),
-    ]);
-
-    return {
-      conversations: chatResult.conversations,
-      articles: articleResult.articles,
-      configured: true,
-    };
-  } catch {
-    return { conversations: [], articles: [], configured: false };
-  }
-}
+import { getConversations, getArticles } from "@/lib/storage";
 
 export default async function HomePage() {
-  const { conversations, articles, configured } = await getRecentContent();
+  const [chatResult, articleResult] = await Promise.all([
+    getConversations(1, 6),
+    getArticles(1, 6),
+  ]);
+
+  const conversations = chatResult.conversations;
+  const articles = articleResult.articles;
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-12">
@@ -39,29 +22,14 @@ export default async function HomePage() {
           一站式保存我的 ChatGPT 对话记录、公众号文章和小红书文案。
           从 AI 对话中沉淀知识，从创作中积累灵感。
         </p>
-        {!configured && (
-          <div className="mt-8 p-6 bg-amber-50 border border-amber-200 rounded-xl max-w-2xl mx-auto text-left">
-            <h2 className="font-semibold text-amber-800 mb-2">⚙️ 尚未配置 Supabase</h2>
-            <p className="text-amber-700 text-sm mb-4">
-              请先在{" "}
-              <a
-                href="https://supabase.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 underline font-medium"
-              >
-                Supabase
-              </a>{" "}
-              创建项目，然后在 <code className="bg-amber-100 px-1 rounded">.env.local</code> 中填入配置信息。
-            </p>
-            <ol className="text-amber-700 text-sm list-decimal list-inside space-y-1">
-              <li>在 Supabase 创建免费项目</li>
-              <li>在 SQL Editor 中运行 <code className="bg-amber-100 px-1 rounded">schema.sql</code></li>
-              <li>复制项目 URL 和 API Key 到 <code className="bg-amber-100 px-1 rounded">.env.local</code></li>
-              <li>设置 <code className="bg-amber-100 px-1 rounded">ADMIN_PASSWORD</code></li>
-            </ol>
-          </div>
-        )}
+        <div className="mt-4">
+          <Link
+            href="/admin/import"
+            className="inline-block px-5 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            📥 导入内容
+          </Link>
+        </div>
       </div>
 
       {/* Stats */}

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ConversationCard } from "@/components/ContentCard";
-import { getConversations, getAllTags } from "@/lib/supabase";
+import { getConversations, getAllTags } from "@/lib/storage";
 import Pagination from "@/components/Pagination";
 
 export const metadata = {
@@ -17,25 +17,10 @@ export default async function ChatGPTListPage({
   const tag = params.tag;
   const limit = 20;
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const configured = supabaseUrl && !supabaseUrl.includes("your-project-id");
-
-  let conversations: Awaited<ReturnType<typeof getConversations>> = {
-    conversations: [],
-    total: 0,
-  };
-  let allTags: string[] = [];
-
-  if (configured) {
-    try {
-      [conversations, { chatgpt: allTags }] = await Promise.all([
-        getConversations(page, limit, tag),
-        getAllTags(),
-      ]);
-    } catch {
-      // Supabase not configured or error
-    }
-  }
+  const [conversations, { chatgpt: allTags }] = await Promise.all([
+    getConversations(page, limit, tag),
+    getAllTags(),
+  ]);
 
   const totalPages = Math.ceil(conversations.total / limit);
 
@@ -94,21 +79,13 @@ export default async function ChatGPTListPage({
         </>
       ) : (
         <div className="text-center py-20 bg-white rounded-xl border border-dashed border-gray-300">
-          <p className="text-gray-400 text-lg">
-            {configured ? "暂无对话记录" : "请先配置 Supabase"}
-          </p>
+          <p className="text-gray-400 text-lg">暂无对话记录</p>
           <p className="text-gray-400 text-sm mt-1">
-            {configured ? (
-              <>
-                前往{" "}
-                <Link href="/admin/import" className="text-blue-500 underline">
-                  管理后台
-                </Link>{" "}
-                导入数据
-              </>
-            ) : (
-              "查看项目 README 了解配置步骤"
-            )}
+            前往{" "}
+            <Link href="/admin/import" className="text-blue-500 underline">
+              管理后台
+            </Link>{" "}
+            导入数据
           </p>
         </div>
       )}
